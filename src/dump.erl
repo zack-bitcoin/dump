@@ -24,9 +24,6 @@ start_link(WordSize, Id, Mode, Loc) ->
          end,
     gen_server:start_link({global, Id}, ?MODULE, X, []).
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
-loc2rest(Loc) ->
-    {F, _} = lists:split(length(Loc) - 3, Loc),
-    Loc2 = F ++ "_rest.db".
 save_table(ID, Loc) ->
     %io:fwrite("trying to save table "),
     %io:fwrite(ID),
@@ -40,7 +37,7 @@ save_table(ID, Loc) ->
             save_table(ID, Loc)
     end.
 %terminate(_, {ram, Max, ID, Loc}) -> 
-    %Loc2 = loc2rest(Loc),
+    %Loc2 = utils:loc2rest(Loc),
     %db:save(Loc2, term_to_binary({Max})),
     %save_table(ID, Loc),
     %ets:tab2file(ID, Loc, [{sync, true}]),
@@ -49,12 +46,12 @@ save_table(ID, Loc) ->
 %    io:format("ram dump died\n"), 
 %    ok;
 terminate(_, {ram, Top, ID, Loc}) -> 
-    Loc2 = loc2rest(Loc),
+    Loc2 = utils:loc2rest(Loc),
     db:save(Loc2, term_to_binary({Top})),
     save_table(ID, Loc),
     ok;
 terminate(_, _) -> 
-    %io:format("dump died!\n"), 
+    io:format("dump died!\n"), 
     ok.
 handle_info(_, X) -> {noreply, X}.
 handle_cast(delete_all, {ram, Top, ID, Loc}) -> 
@@ -69,13 +66,13 @@ handle_cast(_, X) -> {noreply, X}.
 %handle_call(_, _, []) -> 
 %    {reply, {error, off}, []};
 %handle_call(off, _, X = {ram, Top, ID, Loc}) -> 
-%    Loc2 = loc2rest(Loc),
+%    Loc2 = utils:loc2rest(Loc),
 %    db:save(Loc2, term_to_binary({Top})),
 %    save_table(ID, Loc),
 %    io:format("ram dump saved\n"), 
 %    {reply, ok, []};
 handle_call(quick_save, _, {ram, Top, ID, Loc}) -> 
-    Loc2 = loc2rest(Loc),
+    Loc2 = utils:loc2rest(Loc),
     db:save(Loc2, term_to_binary({Top})),
     save_table(ID, Loc),
     {reply, ok, {ram, Top, ID, Loc}};
@@ -100,12 +97,6 @@ handle_call({update, Location, Data, _ID}, _From, X = {hd, _, ID, _}) ->
     Word = size(Data),
     file_manager:write(ID, Location*Word, Data),
     {reply, ok, X};
-%handle_call({fast_write, Data, ID}, _From, X = {hd, Word}) ->
-%    Word = size(Data),
-%    Top = bits:top(ID),
-%    file_manager:fast_write(ID, Top*Word, Data),
-%    bits:write(ID),
-%    {reply, Top, X};
 handle_call({write, Data, _ID}, _From, {ram, Top, ID, Loc}) ->
     ets:insert(ID, {Top, Data}),
     {reply, Top, {ram, Top+1, ID, Loc}};
@@ -172,7 +163,7 @@ load_ets(ID, Loc) ->
             end;
         _ -> ok
     end,
-    case db:read(loc2rest(Loc)) of
+    case db:read(utils:loc2rest(Loc)) of
         "" -> 1;
         X -> 
             {Y} = binary_to_term(X),
