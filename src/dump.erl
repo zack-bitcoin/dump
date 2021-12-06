@@ -24,18 +24,12 @@ start_link(WordSize, Id, Mode, Loc) ->
          end,
     gen_server:start_link({global, Id}, ?MODULE, X, []).
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
-save_table(ID, Loc) ->
-    %io:fwrite("trying to save table "),
-    %io:fwrite(ID),
-    %io:fwrite("\n"),
-    case ets:tab2file(ID, Loc, [{sync, true}]) of
-    %case ets:tab2file(ID, Loc) of
-        ok -> ok;
-        {error, R} ->
-            %io:fwrite(R),
-            %timer:sleep(200),
-            save_table(ID, Loc)
-    end.
+%save_table(ID, Loc) ->
+%    case ets:tab2file(ID, Loc, [{sync, true}]) of
+%        ok -> ok;
+%        {error, R} ->
+%            save_table(ID, Loc)
+%    end.
 %terminate(_, {ram, Max, ID, Loc}) -> 
     %Loc2 = utils:loc2rest(Loc),
     %db:save(Loc2, term_to_binary({Max})),
@@ -48,7 +42,7 @@ save_table(ID, Loc) ->
 terminate(_, {ram, Top, ID, Loc}) -> 
     Loc2 = utils:loc2rest(Loc),
     db:save(Loc2, term_to_binary({Top})),
-    save_table(ID, Loc),
+    utils:save_table(ID, Loc),
     ok;
 terminate(_, _) -> 
     io:format("dump died!\n"), 
@@ -74,7 +68,7 @@ handle_cast(_, X) -> {noreply, X}.
 handle_call(quick_save, _, {ram, Top, ID, Loc}) -> 
     Loc2 = utils:loc2rest(Loc),
     db:save(Loc2, term_to_binary({Top})),
-    save_table(ID, Loc),
+    utils:save_table(ID, Loc),
     {reply, ok, {ram, Top, ID, Loc}};
 handle_call(mode, _From, X = {Y, _, _, _}) ->
     {reply, Y, X};
