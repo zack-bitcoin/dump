@@ -38,7 +38,7 @@ handle_call({delete, Height}, _From, {ID, Top, Highest, File})->
     NewHighest = 
         case Height of 
             Highest -> highest2(ID, Highest);
-            true -> Highest
+            _ -> Highest
         end,
     {reply, ok, {ID, min(Top,Height), 
                  NewHighest, File}};
