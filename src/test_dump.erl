@@ -4,6 +4,9 @@
 %timer:tc(test_dump, test, []).
 %{5457078,success}
 
+-define(test_mode, hd).
+%-define(test_mode, ram).
+
 test_batch() ->
     ID = table,
     dump_sup:start_link(ID, 0, 100002, ram, ""),
@@ -12,7 +15,17 @@ test_batch() ->
     dump:get(3, ID).
 
 test_init(ID, Size) ->
-    dump_sup:start_link(ID, Size, 100002, ram, "").
+    %ets:delete_all_objects(bits:ider(ID)),
+    Mode = ?test_mode,
+    dump_sup:start_link(ID, Size, 100002, Mode, ""),
+    case Mode of
+        hd ->
+            bits:reset(ID),
+            1 = bits:top(ID);
+        ram -> dump:delete_all(ID)
+    end,
+    ok.
+    
 
 testlta() ->
     %41077 = 0.04 seconds
@@ -26,7 +39,8 @@ test() ->
     ID = kv2,
     Size = 100,
     test_init(ID, Size),
-    timer:tc(test_dump, test_main, [ID, Size]).
+    %timer:tc(test_dump, test_main, [ID, Size]).
+    test_dump:test_main(ID, Size).
 test_main(ID, Size) ->
     V1 = <<1:(8*Size)>>,
     V2 = <<2:(8*Size)>>,

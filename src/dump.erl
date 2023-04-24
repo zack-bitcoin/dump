@@ -1,26 +1,37 @@
 -module(dump).
 -behaviour(gen_server).
--export([start_link/4,code_change/3,handle_call/3,handle_cast/2,handle_info/2,init/1,terminate/2, delete/2,put/2,get/2,word/1,highest/1,update/3, put_batch/2, mode/1,
+-export([start_link/4,code_change/3,handle_call/3,handle_cast/2,handle_info/2,init/1,terminate/2, delete/2,put/2,get/2,word/1,update/3, put_batch/2, mode/1,
          delete_all/1,%only in ram mode,
-         reload_ets/1,%only in ram mode,
-         quick_save/1%only works in ram mode.
+         reload/1,
+         quick_save/1
         ]).
 init({Mode, WordSize, ID, Loc}) -> 
     process_flag(trap_exit, true),
-    W = case Mode of
+    Top = case Mode of
             ram -> 
                 load_ets(ID, Loc);
-            hd -> WordSize
+            hd -> bits:top(ID)
         end,
-    %io:fwrite("start dump0\n"),
+    io:fwrite("start dump0\n"),
+    io:fwrite("top is "),
+    io:fwrite(integer_to_list(Top)),
+    io:fwrite("\n"),
     %io:fwrite(integer_to_list(W)),
     %io:fwrite("start dump1\n"),
     %io:fwrite("\n"),
-    {ok, {Mode, W, ID, Loc}}.
+    if
+        not(is_integer(WordSize)) -> 
+            io:fwrite({WordSize, Mode});
+        true -> ok
+    end,
+    true = is_integer(WordSize),
+    {ok, {Mode, Top, WordSize, ID, Loc}}.
 start_link(WordSize, Id, Mode, Loc) -> 
     X = case Mode of
-             ram -> {ram, 1, Id, Loc};
-             hd -> {hd, WordSize, Id, Loc}
+             ram -> {ram, WordSize, Id, Loc};
+             hd -> 
+                true = is_integer(WordSize),
+                {hd, WordSize, Id, Loc}
          end,
     gen_server:start_link({global, Id}, ?MODULE, X, []).
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
@@ -28,125 +39,94 @@ loc2rest(Loc) ->
     {F, _} = lists:split(length(Loc) - 3, Loc),
     Loc2 = F ++ "_rest.db".
 save_table(ID, Loc) ->
-    %io:fwrite("trying to save table "),
-    %io:fwrite(ID),
-    %io:fwrite("\n"),
     case ets:tab2file(ID, Loc, [{sync, true}]) of
-    %case ets:tab2file(ID, Loc) of
         ok -> ok;
         {error, R} ->
-            %io:fwrite(R),
-            %timer:sleep(200),
             save_table(ID, Loc)
     end.
-%terminate(_, {ram, Max, ID, Loc}) -> 
-    %Loc2 = loc2rest(Loc),
-    %db:save(Loc2, term_to_binary({Max})),
-    %save_table(ID, Loc),
-    %ets:tab2file(ID, Loc, [{sync, true}]),
-    %io:fwrite(Loc),
-    %io:fwrite("\n"),
-%    io:format("ram dump died\n"), 
-%    ok;
-terminate(_, {ram, Top, ID, Loc}) -> 
+terminate(_, {ram, Top, WordSize, ID, Loc}) -> 
     Loc2 = loc2rest(Loc),
     db:save(Loc2, term_to_binary({Top})),
     save_table(ID, Loc),
+    io:format("dump died!\n"), 
     ok;
 terminate(_, _) -> 
-    %io:format("dump died!\n"), 
+    io:format("dump died!\n"), 
     ok.
 handle_info(_, X) -> {noreply, X}.
-handle_cast(delete_all, {ram, Top, ID, Loc}) -> 
+handle_cast(delete_all, {ram, Top, W, ID, Loc}) -> 
     ets:delete_all_objects(ID),
-    {noreply, {ram, Top, ID, Loc}};
-handle_cast(reload_ets, {ram, Top, ID, Loc}) -> 
+    %{noreply, {ram, Top, W, ID, Loc}};
+    {noreply, {ram, 1, W, ID, Loc}};
+handle_cast(reload_ets, {hd, Top, WordSize, ID, Loc}) -> 
+    bits:load_ets_external(ID),
+    Top2 = read_top(Loc),
+    true = is_integer(Top2),
+    {noreply, {hd, Top2, WordSize, ID, Loc}};
+handle_cast(reload_ets, {ram, _Top, WordSize, ID, Loc}) -> 
     ets:delete(ID),
     timer:sleep(100),
-    Top2 = load_ets(ID, Loc),
-    {noreply, {ram, Top2, ID, Loc}};
+    load_ets(ID, Loc),
+    Top2 = read_top(Loc),
+    true = is_integer(Top2),
+    {noreply, {ram, Top2, WordSize, ID, Loc}};
 handle_cast(_, X) -> {noreply, X}.
-%handle_call(_, _, []) -> 
-%    {reply, {error, off}, []};
-%handle_call(off, _, X = {ram, Top, ID, Loc}) -> 
-%    Loc2 = loc2rest(Loc),
-%    db:save(Loc2, term_to_binary({Top})),
-%    save_table(ID, Loc),
-%    io:format("ram dump saved\n"), 
-%    {reply, ok, []};
-handle_call(quick_save, _, {ram, Top, ID, Loc}) -> 
+handle_call(quick_save, _, X = {Type, Top, _WordSize, ID, Loc}) -> 
     Loc2 = loc2rest(Loc),
     db:save(Loc2, term_to_binary({Top})),
-    save_table(ID, Loc),
-    {reply, ok, {ram, Top, ID, Loc}};
-handle_call(mode, _From, X = {Y, _, _, _}) ->
+    case Type of
+        ram ->
+            save_table(ID, Loc);
+        hd -> bits:quick_save(ID)
+    end,
+    {reply, ok, X};
+handle_call(mode, _From, X = {Y, _, _, _, _}) ->
     {reply, Y, X};
-handle_call({delete, Location, _Id}, _From, X = {hd, _, Id, _}) ->
+handle_call({delete, Location, _Id}, _From, X = {hd, _, _, Id, _}) ->
     bits:delete(Id, Location),
     {reply, ok, X};
-handle_call({write_batch, L, _ID}, _, {ram, Top, ID, Loc}) ->
-    %ets:insert(ID, {Top, Data}),
-    ets:insert(ID, L),
-    Top2 = max_second(L, Top),
-    {reply, ok, {ram, Top2+1, ID, Loc}};
-handle_call({delete, Location, _}, _From, X = {ram, _, Id, _}) ->
+handle_call({delete, Location, _}, _From, X = {ram, _, _, Id, _}) ->
     ets:delete(Id, Location),
     {reply, ok, X};
-handle_call({update, Location, Data, _ID}, _From, X = {ram, _, ID, _}) ->
+handle_call({update, Location, Data, _ID}, _From, X = {ram, _, _, ID, _}) ->
     ets:insert(ID, [{Location, Data}]),
     {reply, ok, X};
-handle_call({update, Location, Data, _ID}, _From, X = {hd, _, ID, _}) ->
-    %{Word} = X,
+handle_call({update, Location, Data, _ID}, _From, X = {hd, _, _, ID, _}) ->
     Word = size(Data),
     file_manager:write(ID, Location*Word, Data),
     {reply, ok, X};
-%handle_call({fast_write, Data, ID}, _From, X = {hd, Word}) ->
-%    Word = size(Data),
-%    Top = bits:top(ID),
-%    file_manager:fast_write(ID, Top*Word, Data),
-%    bits:write(ID),
-%    {reply, Top, X};
-handle_call({write, Data, _ID}, _From, {ram, Top, ID, Loc}) ->
+handle_call({write, Data, _ID}, _From, {ram, Top, WordSize, ID, Loc}) ->
     ets:insert(ID, {Top, Data}),
-    {reply, Top, {ram, Top+1, ID, Loc}};
-handle_call({write, Data, _ID}, _From, X = {hd, Word, ID, Loc}) ->
+    {reply, Top, {ram, Top+1, WordSize, ID, Loc}};
+handle_call({write, Data, _ID}, _From, X = {hd, _Top, Word, ID, Loc}) ->
     Word = size(Data),
     Top = bits:top(ID),
     file_manager:write(ID, Top*Word, Data),
     bits:write(ID),
-    {reply, Top, X};
-handle_call({read, Location, _ID}, _From, X = {ram, _, ID, Loc}) ->
+    Top2 = bits:top(ID),
+    {reply, Top, {hd, Top2, Word, ID, Loc}};
+handle_call({read, Location, _ID}, _From, X = {ram, _, _, ID, Loc}) ->
     Y = case ets:lookup(ID, Location) of
             [] -> empty;
             Z -> element(2, hd(Z))
         end,
     {reply, Y, X};
-handle_call({read, Location, _ID}, _From, X = {hd, Word, ID, Loc}) ->
+handle_call({read, Location, _ID}, _From, X = {hd, _, Word, ID, Loc}) ->
     Z = case file_manager:read(ID, Location*Word, Word) of
 	    {ok, A} -> A;
 	    eof -> 
 		<<0:(Word*8)>>
 	end,
-
-    %Z = case bits:get(ID, Location) of
-    %        true ->
-    %            case file_manager:read(ID, Location*Word, Word) of
-    %                {ok, A} -> A;
-    %                eof -> <<0:(Word*8)>>
-    %            end;
-    %        false ->
-    %            <<0:(Word*8)>>
-    %    end,
     {reply, Z, X};
-handle_call(word, _From, X = {ram, _, _, _}) ->
+handle_call(word, _From, X = {ram, _, _, _, _}) ->
     {reply, 0, X};
-handle_call(word, _From, X = {hd, Word, _, _}) ->
+handle_call(word, _From, X = {hd, _, Word, _, _}) ->
     {reply, Word, X};
-handle_call({highest, _ID}, _From, X = {ram, Top, _, _}) ->
-    {reply, Top, X};
-handle_call({highest, ID}, _From, X = {hd, Word, _, _}) ->
-    A = bits:highest(ID),
-    {reply, A*Word, X};
+%handle_call({highest, _ID}, _From, X = {ram, Top, _, _}) ->
+%    {reply, Top, X};
+%handle_call({highest, ID}, _From, X = {hd, Word, _, _}) ->
+%    A = bits:highest(ID),
+%    {reply, A*Word, X};
 handle_call(off, _, X) -> {reply, ok, X};
 handle_call(Other, _, X) ->
     io:fwrite("dump cannot handle that command\n"),
@@ -164,36 +144,29 @@ load_ets(ID, Loc) ->
             case ets:file2tab(Loc) of
                 {ok, ID} -> ok;
                 {error, R} ->
-                    %io:fwrite(R),
-                    %io:fwrite("make table "),
-                    %io:fwrite(ID),
-                    %io:fwrite("\n"),
                     ets:new(ID, [set, named_table, {write_concurrency, false}, compressed])
-            end;
-        _ -> ok
-    end,
+            end,
+            1;
+        _ -> read_top(Loc)
+    end.
+read_top(Loc) ->
     case db:read(loc2rest(Loc)) of
         "" -> 1;
         X -> 
             {Y} = binary_to_term(X),
             Y
     end.
-    
-    
 
 
 quick_save(ID) ->
     gen_server:call({global, ID}, quick_save).
-reload_ets(ID) ->
-    gen_server:cast({global, ID}, reload_ets).
+reload(ID) ->
+    gen_server:cast({global, ID}, reload).
 delete_all(ID) ->
     gen_server:cast({global, ID}, delete_all).
     
 off(ID) -> gen_server:call({global, ID}, off).
 delete(X, ID) -> gen_server:call({global, ID}, {delete, X, ID}).
-fast_put(Data, ID) -> 
-    %gen_server:call({global, ID}, {fast_write, Data, ID}).
-    gen_server:call({global, ID}, {write, Data, ID}).
 update(Location, Data, ID) -> 
     gen_server:call({global, ID}, {update, Location, Data, ID}).
 put(Data, ID) -> 
@@ -204,5 +177,5 @@ get(X, ID) ->
     true = X > 0,
     gen_server:call({global, ID}, {read, X, ID}).
 word(ID) -> gen_server:call({global, ID}, word).
-highest(ID) -> gen_server:call({global, ID}, {highest, ID}).
+%highest(ID) -> gen_server:call({global, ID}, {highest, ID}).
 mode(ID) -> gen_server:call({global, ID}, mode).
