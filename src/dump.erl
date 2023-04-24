@@ -12,10 +12,10 @@ init({Mode, WordSize, ID, Loc}) ->
                 load_ets(ID, Loc);
             hd -> bits:top(ID)
         end,
-    io:fwrite("start dump0\n"),
-    io:fwrite("top is "),
-    io:fwrite(integer_to_list(Top)),
-    io:fwrite("\n"),
+    %io:fwrite("start dump0\n"),
+    %io:fwrite("top is "),
+    %io:fwrite(integer_to_list(Top)),
+    %io:fwrite("\n"),
     %io:fwrite(integer_to_list(W)),
     %io:fwrite("start dump1\n"),
     %io:fwrite("\n"),
@@ -37,28 +37,22 @@ start_link(WordSize, Id, Mode, Loc) ->
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 loc2rest(Loc) ->
     {F, _} = lists:split(length(Loc) - 3, Loc),
-    Loc2 = F ++ "_rest.db".
-save_table(ID, Loc) ->
-    case ets:tab2file(ID, Loc, [{sync, true}]) of
-        ok -> ok;
-        {error, R} ->
-            save_table(ID, Loc)
-    end.
-terminate(_, {ram, Top, WordSize, ID, Loc}) -> 
+    F ++ "_rest.db".
+terminate(_, {ram, Top, _WordSize, ID, Loc}) -> 
     Loc2 = loc2rest(Loc),
     db:save(Loc2, term_to_binary({Top})),
-    save_table(ID, Loc),
+    utils:save_table(ID, Loc),
     io:format("dump died!\n"), 
     ok;
 terminate(_, _) -> 
     io:format("dump died!\n"), 
     ok.
 handle_info(_, X) -> {noreply, X}.
-handle_cast(delete_all, {ram, Top, W, ID, Loc}) -> 
+handle_cast(delete_all, {ram, _, W, ID, Loc}) -> 
     ets:delete_all_objects(ID),
     %{noreply, {ram, Top, W, ID, Loc}};
     {noreply, {ram, 1, W, ID, Loc}};
-handle_cast(reload_ets, {hd, Top, WordSize, ID, Loc}) -> 
+handle_cast(reload_ets, {hd, _, WordSize, ID, Loc}) -> 
     bits:load_ets_external(ID),
     Top2 = read_top(Loc),
     true = is_integer(Top2),
@@ -76,7 +70,7 @@ handle_call(quick_save, _, X = {Type, Top, _WordSize, ID, Loc}) ->
     db:save(Loc2, term_to_binary({Top})),
     case Type of
         ram ->
-            save_table(ID, Loc);
+            utils:save_table(ID, Loc);
         hd -> bits:quick_save(ID)
     end,
     {reply, ok, X};
@@ -98,20 +92,20 @@ handle_call({update, Location, Data, _ID}, _From, X = {hd, _, _, ID, _}) ->
 handle_call({write, Data, _ID}, _From, {ram, Top, WordSize, ID, Loc}) ->
     ets:insert(ID, {Top, Data}),
     {reply, Top, {ram, Top+1, WordSize, ID, Loc}};
-handle_call({write, Data, _ID}, _From, X = {hd, _Top, Word, ID, Loc}) ->
+handle_call({write, Data, _ID}, _From, {hd, _Top, Word, ID, Loc}) ->
     Word = size(Data),
     Top = bits:top(ID),
     file_manager:write(ID, Top*Word, Data),
     bits:write(ID),
     Top2 = bits:top(ID),
     {reply, Top, {hd, Top2, Word, ID, Loc}};
-handle_call({read, Location, _ID}, _From, X = {ram, _, _, ID, Loc}) ->
+handle_call({read, Location, _ID}, _From, X = {ram, _, _, ID, _}) ->
     Y = case ets:lookup(ID, Location) of
             [] -> empty;
             Z -> element(2, hd(Z))
         end,
     {reply, Y, X};
-handle_call({read, Location, _ID}, _From, X = {hd, _, Word, ID, Loc}) ->
+handle_call({read, Location, _ID}, _From, X = {hd, _, Word, ID, _Loc}) ->
     Z = case file_manager:read(ID, Location*Word, Word) of
 	    {ok, A} -> A;
 	    eof -> 
@@ -127,7 +121,6 @@ handle_call(word, _From, X = {hd, _, Word, _, _}) ->
 %handle_call({highest, ID}, _From, X = {hd, Word, _, _}) ->
 %    A = bits:highest(ID),
 %    {reply, A*Word, X};
-handle_call(off, _, X) -> {reply, ok, X};
 handle_call(Other, _, X) ->
     io:fwrite("dump cannot handle that command\n"),
     io:fwrite("\n"),
@@ -135,15 +128,12 @@ handle_call(Other, _, X) ->
     {reply, ok, X}.
 
 
-max_second([], X) -> X;
-max_second([{L, D}|T], X) ->
-    max_second(T, max(X, L)).
 load_ets(ID, Loc) ->
     case ets:info(ID) of
         undefined ->
             case ets:file2tab(Loc) of
                 {ok, ID} -> ok;
-                {error, R} ->
+                {error, _R} ->
                     ets:new(ID, [set, named_table, {write_concurrency, false}, compressed])
             end,
             1;
@@ -165,7 +155,6 @@ reload(ID) ->
 delete_all(ID) ->
     gen_server:cast({global, ID}, delete_all).
     
-off(ID) -> gen_server:call({global, ID}, off).
 delete(X, ID) -> gen_server:call({global, ID}, {delete, X, ID}).
 update(Location, Data, ID) -> 
     gen_server:call({global, ID}, {update, Location, Data, ID}).

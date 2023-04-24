@@ -68,7 +68,8 @@ test_main(ID, Size) ->
     %V1 = dump:get(A1, ID).
     V2 = dump:get(A4, ID),
     dump:update(A4, V1, ID),
-    V1 = dump:get(A4, ID).
+    V1 = dump:get(A4, ID),
+    success.
     
    
 put_times(0, _, _) -> [];

@@ -19,7 +19,7 @@ ider/1,
 test/0
 ]).
 
--define(page, 1).%bytes per page
+-define(page, 1024).%bytes per page
 -define(page_bits, (?page * 8)).
     
 
@@ -34,21 +34,17 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 start_link(Id, File, Size) -> gen_server:start_link({global, Id}, ?MODULE, {Id, File, Size}, []).
 terminate(_, {ID, Top, _Highest, File, _Size}) -> 
     %db:save(File, {Bits, Top, Highest}),
-    save_table(ID, File),
+    ets:insert(ID, [{top, Top}]),
+    utils:save_table(ID, File),
     %io:format("died!"), 
     ok.
-save_table(ID, Loc) ->
-    case ets:tab2file(ID, Loc, [{sync, true}]) of
-        ok -> ok;
-        {error, R} ->
-            save_table(ID, Loc)
-    end.
 handle_info(_, X) -> {noreply, X}.
-handle_cast(load_ets, X = {ID, Top, _Highest, File, Size}) -> 
-    load_ets(ID, File),
-    {noreply, X};
+handle_cast(load_ets, X = {ID, _Top, _Highest, File, Size}) -> 
+    Top = load_ets(ID, File),
+    {noreply, {ID, Top, ok, File, Size}};
 handle_cast(quick_save, X = {ID, Top, _Highest, File, Size}) -> 
-    save_table(ID, File),
+    ets:insert(ID, [{top, Top}]),
+    utils:save_table(ID, File),
     {noreply, X};
 handle_cast(reset, X = {ID, Top, _Highest, File, Size}) -> 
     ets:delete_all_objects(ID),
@@ -151,16 +147,24 @@ internal_update(ID, N, Value) ->
     %ets:insert(ID, [{Location, Data}]).
     %hipe_bifs:bitarray_update(Bits, Height, Value).%todo
 
+ets_top_check(ID) ->
+    case ets:lookup(ID, top) of
+        [] -> 1;
+        [{top, X}] -> X
+    end.
+            
+
 
 load_ets(ID, File) ->
     case ets:info(ID) of
         undefined ->
             case ets:file2tab(File) of
-                {ok, ID} -> ok;
+                {ok, ID} -> ets_top_check(ID);
                 {error, _} ->
-                    ets:new(ID, [set, named_table, {write_concurrency, false}, compressed])
+                    ets:new(ID, [set, named_table, {write_concurrency, false}, compressed]),
+                    1
             end;
-        _ -> ok
+        _ -> ets_top_check(ID)
     end.
     
 
