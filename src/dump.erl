@@ -8,22 +8,9 @@
 init({Mode, WordSize, ID, Loc}) -> 
     process_flag(trap_exit, true),
     Top = case Mode of
-            ram -> 
-                load_ets(ID, Loc);
+            ram -> load_ets(ID, Loc);
             hd -> bits:top(ID)
         end,
-    %io:fwrite("start dump0\n"),
-    %io:fwrite("top is "),
-    %io:fwrite(integer_to_list(Top)),
-    %io:fwrite("\n"),
-    %io:fwrite(integer_to_list(W)),
-    %io:fwrite("start dump1\n"),
-    %io:fwrite("\n"),
-    if
-        not(is_integer(WordSize)) -> 
-            io:fwrite({WordSize, Mode});
-        true -> ok
-    end,
     true = is_integer(WordSize),
     {ok, {Mode, Top, WordSize, ID, Loc}}.
 start_link(WordSize, Id, Mode, Loc) -> 
@@ -55,6 +42,7 @@ handle_cast(delete_all, {ram, _, W, ID, Loc}) ->
 handle_cast(reload, {hd, _, WordSize, ID, Loc}) -> 
     bits:load_ets_external(ID),
     Top2 = read_top(Loc),
+    %Top2 = bits:top(ID),
     true = is_integer(Top2),
     {noreply, {hd, Top2, WordSize, ID, Loc}};
 handle_cast(reload, {ram, _Top, WordSize, ID, Loc}) -> 
@@ -69,8 +57,7 @@ handle_call(quick_save, _, X = {Type, Top, _WordSize, ID, Loc}) ->
     Loc2 = loc2rest(Loc),
     db:save(Loc2, term_to_binary({Top})),
     case Type of
-        ram ->
-            utils:save_table(ID, Loc);
+        ram -> utils:save_table(ID, Loc);
         hd -> bits:quick_save(ID)
     end,
     {reply, ok, X};
@@ -106,6 +93,8 @@ handle_call({read, Location, _ID}, _From, X = {ram, _, _, ID, _}) ->
         end,
     {reply, Y, X};
 handle_call({read, Location, _ID}, _From, X = {hd, _, Word, ID, _Loc}) ->
+    true = is_integer(Location),
+    true = is_integer(Word),
     Z = case file_manager:read(ID, Location*Word, Word) of
 	    {ok, A} -> A;
 	    eof -> 
@@ -141,9 +130,14 @@ load_ets(ID, Loc) ->
     end.
 read_top(Loc) ->
     case db:read(loc2rest(Loc)) of
-        "" -> 1;
+        "" -> 
+            %io:fwrite("dump didn't find archive for the top height\n"),
+            1;
         X -> 
+            %io:fwrite("dump found archive for the top height\n"),
             {Y} = binary_to_term(X),
+            %io:fwrite(integer_to_list(Y)),
+            %io:fwrite("\n"),
             Y
     end.
 

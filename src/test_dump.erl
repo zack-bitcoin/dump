@@ -1,6 +1,6 @@
 -module(test_dump).
 -export([test/0, test2/0, test3/0, test4/0, test_main/2, testlta/0,
-        test_batch/0]).
+        test_batch/0, test_restore_1/0, test_restore_2/0]).
 %timer:tc(test_dump, test, []).
 %{5457078,success}
 
@@ -111,3 +111,43 @@ test4() ->
     test_main(ID, Size),
     eprof:stop_profiling(),
     eprof:analyze(total).
+
+test_restore_clean() ->
+    os:cmd("rm data/*.db").
+    
+
+test_restore_1() ->
+    ID = kv2,
+    Size = 100,
+    test_restore_clean(),
+    test_init(ID, Size),
+    1 = bits:top(ID),
+    V1 = <<1:(8*Size)>>,
+    V2 = <<2:(8*Size)>>,
+    S2 = (Size*8),
+    case dump:get(2, ID) of
+        empty -> ok;
+        <<0:S2>> -> ok;
+        X -> io:fwrite({size(X), X})
+    end,
+    dump:put(V1, ID),
+    2 = dump:put(V2, ID),
+    dump:quick_save(ID),
+    V2.
+
+test_restore_2() ->
+    ID = kv2,
+    Size = 100,
+    %V1 = crypto:strong_rand_bytes(Size)
+    V1 = <<1:(8*Size)>>,
+    V2 = <<2:(8*Size)>>,
+    test_init(ID, Size),
+    1 = bits:top(ID),
+    S2 = (Size*8),
+    io:fwrite("now reload dump\n"),
+    dump:reload(ID),
+    timer:sleep(100),
+    3 = bits:top(ID),
+    V2 = dump:get(2, ID).
+    
+    

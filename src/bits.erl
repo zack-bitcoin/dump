@@ -39,8 +39,10 @@ terminate(_, {ID, Top, _Highest, File, _Size}) ->
     %io:format("died!"), 
     ok.
 handle_info(_, X) -> {noreply, X}.
-handle_cast(load_ets, X = {ID, _Top, _Highest, File, Size}) -> 
-    Top = load_ets(ID, File),
+handle_cast(load_ets, X = {ID, _Top, _Highest, File, Size}) ->
+    ets:delete(ID),
+    {ok, ID} = ets:file2tab(File),
+    Top = ets_top_check(ID),
     {noreply, {ID, Top, ok, File, Size}};
 handle_cast(quick_save, X = {ID, Top, _Highest, File, Size}) -> 
     ets:insert(ID, [{top, Top}]),
