@@ -25,14 +25,12 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 loc2rest(Loc) ->
     {F, _} = lists:split(length(Loc) - 3, Loc),
     F ++ "_rest.db".
-terminate(_, {ram, Top, _WordSize, ID, Loc}) -> 
-    Loc2 = loc2rest(Loc),
-    db:save(Loc2, term_to_binary({Top})),
-    utils:save_table(ID, Loc),
+terminate(_, {Type, Top, _WordSize, ID, Loc}) -> 
+    save_internal(Loc, Top, Type, ID),
     io:format("dump died!\n"), 
     ok;
 terminate(_, _) -> 
-    io:format("dump died!\n"), 
+    io:format("dump died in impossible way.\n"), 
     ok.
 handle_info(_, X) -> {noreply, X}.
 handle_cast(delete_all, {ram, _, W, ID, Loc}) -> 
@@ -54,12 +52,7 @@ handle_cast(reload, {ram, _Top, WordSize, ID, Loc}) ->
     {noreply, {ram, Top2, WordSize, ID, Loc}};
 handle_cast(_, X) -> {noreply, X}.
 handle_call(quick_save, _, X = {Type, Top, _WordSize, ID, Loc}) -> 
-    Loc2 = loc2rest(Loc),
-    db:save(Loc2, term_to_binary({Top})),
-    case Type of
-        ram -> utils:save_table(ID, Loc);
-        hd -> bits:quick_save(ID)
-    end,
+    save_internal(Loc, Top, Type, ID),
     {reply, ok, X};
 handle_call(mode, _From, X = {Y, _, _, _, _}) ->
     {reply, Y, X};
@@ -116,6 +109,14 @@ handle_call(Other, _, X) ->
     %io:fwrite({Other, X}),
     {reply, ok, X}.
 
+save_internal(Loc, Top, Type, ID) ->
+    Loc2 = loc2rest(Loc),
+    db:save(Loc2, term_to_binary({Top})),
+    case Type of
+        ram -> utils:save_table(ID, Loc);
+        hd -> bits:quick_save(ID)
+    end.
+    
 
 load_ets(ID, Loc) ->
     case ets:info(ID) of
