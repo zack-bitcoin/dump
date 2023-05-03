@@ -33,6 +33,9 @@ terminate(_, _) ->
     io:format("dump died in impossible way.\n"), 
     ok.
 handle_info(_, X) -> {noreply, X}.
+handle_cast(delete_all, {hd, _, W, ID, Loc}) -> 
+    bits:reset(),
+    {norepy, {hd, 1, W, ID, Loc}};
 handle_cast(delete_all, {ram, _, W, ID, Loc}) -> 
     ets:delete_all_objects(ID),
     %{noreply, {ram, Top, W, ID, Loc}};

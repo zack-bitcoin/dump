@@ -113,6 +113,8 @@ test4() ->
     eprof:analyze(total).
 
 test_restore_clean() ->
+    ID = kv2,
+    dump:delete_all(ID),
     os:cmd("rm data/*.db").
     
 
@@ -132,8 +134,7 @@ test_restore_1() ->
     end,
     dump:put(V1, ID),
     2 = dump:put(V2, ID),
-    dump:quick_save(ID),
-    V2.
+    dump:quick_save(ID).
 
 test_restore_2() ->
     ID = kv2,
