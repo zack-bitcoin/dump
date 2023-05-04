@@ -3,7 +3,8 @@
 -export([start_link/4,code_change/3,handle_call/3,handle_cast/2,handle_info/2,init/1,terminate/2, delete/2,put/2,get/2,word/1,update/3, put_batch/2, mode/1,
          delete_all/1,%only in ram mode,
          reload/1,
-         quick_save/1
+         quick_save/1,
+         top/1
         ]).
 init({Mode, WordSize, ID, Loc}) -> 
     process_flag(trap_exit, true),
@@ -101,11 +102,12 @@ handle_call(word, _From, X = {ram, _, _, _, _}) ->
     {reply, 0, X};
 handle_call(word, _From, X = {hd, _, Word, _, _}) ->
     {reply, Word, X};
-%handle_call({highest, _ID}, _From, X = {ram, Top, _, _}) ->
-%    {reply, Top, X};
-%handle_call({highest, ID}, _From, X = {hd, Word, _, _}) ->
-%    A = bits:highest(ID),
-%    {reply, A*Word, X};
+handle_call(top, _From, X = {ram, Top, _, _, _}) ->
+    true = is_integer(Top),
+    {reply, Top, X};
+handle_call(top, _From, X = {hd, _, _, ID, _}) ->
+    A = bits:top(ID),
+    {reply, A, X};
 handle_call(Other, _, X) ->
     io:fwrite("dump cannot handle that command\n"),
     io:fwrite("\n"),
@@ -166,3 +168,4 @@ get(X, ID) ->
 word(ID) -> gen_server:call({global, ID}, word).
 %highest(ID) -> gen_server:call({global, ID}, {highest, ID}).
 mode(ID) -> gen_server:call({global, ID}, mode).
+top(ID) -> gen_server:call({global, ID}, top).

@@ -121,9 +121,13 @@ test_restore_clean() ->
 test_restore_1() ->
     ID = kv2,
     Size = 100,
+    Mode = dump_app:mode(),
     test_restore_clean(),
     test_init(ID, Size),
-    1 = bits:top(ID),
+    1 = case Mode of
+            hd -> dump:top(ID);
+            ram -> dump:top(ID)
+        end,
     V1 = <<1:(8*Size)>>,
     V2 = <<2:(8*Size)>>,
     S2 = (Size*8),
@@ -139,16 +143,24 @@ test_restore_1() ->
 test_restore_2() ->
     ID = kv2,
     Size = 100,
+    Mode = dump_app:mode(),
     %V1 = crypto:strong_rand_bytes(Size)
     V1 = <<1:(8*Size)>>,
     V2 = <<2:(8*Size)>>,
     test_init(ID, Size),
-    1 = bits:top(ID),
+    case Mode of
+        hd ->
+            1 = dump:top(ID);
+        ram -> 1 = dump:top(ID)
+    end,
     S2 = (Size*8),
     io:fwrite("now reload dump\n"),
     dump:reload(ID),
     timer:sleep(100),
-    3 = bits:top(ID),
+    case Mode of
+        hd ->
+            3 = dump:top(ID);
+        ram -> 3 = dump:top(ID)
+    end,
     V2 = dump:get(2, ID).
-    
-    
+
