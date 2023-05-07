@@ -26,13 +26,14 @@ terminate(_, {F, _}) ->
     file:close(F),
     ok;
 terminate(_, X) -> 
-    io:fwrite("terminated incorrectly\n"),
+    io:fwrite("file manager terminated incorrectly\n"),
     io:fwrite(X).
 handle_info(_, X) -> {noreply, X}.
-handle_cast(terminate2, X = {F, _}) -> 
+handle_cast(terminate2, X = {F, Name}) -> 
     io:fwrite("cast closing file\n"),
     file:close(F),
-    {noreply, X};
+    {{ok, F2}, _} = {file:open(Name, [write, read, raw, binary]), Name},
+    {noreply, {F2, Name}};
 handle_cast(_, X) -> 
     io:fwrite("unhandled cast in dump file manager\n"),
     {noreply, X}.

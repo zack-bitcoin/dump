@@ -119,7 +119,8 @@ save_internal(Loc, Top, Type, ID) ->
     db:save(Loc2, term_to_binary({Top})),
     case Type of
         ram -> utils:save_table(ID, Loc);
-        hd -> bits:quick_save(ID)
+        hd -> bits:quick_save(ID),
+              file_manager:terminate2(ID)
     end.
     
 

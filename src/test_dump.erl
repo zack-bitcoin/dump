@@ -169,5 +169,6 @@ test_restore_2() ->
             3 = dump:top(ID);
         ram -> 3 = dump:top(ID)
     end,
-    V2 = dump:get(2, ID).
+    V2 = dump:get(2, ID),
+    success.
 
