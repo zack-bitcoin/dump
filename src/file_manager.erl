@@ -30,8 +30,10 @@ terminate(_, X) ->
     io:fwrite(X).
 handle_info(_, X) -> {noreply, X}.
 handle_cast(terminate2, X = {F, Name}) -> 
-    io:fwrite("cast closing file\n"),
+    io:fwrite("cast closing file "),
     file:datasync(F),
+    io:fwrite(Name),
+    io:fwrite("\n"),
     %file:close(F),
     %timer:sleep(100),
     %{{ok, F2}, _} = {file:open(Name, [write, read, raw, binary]), Name},
