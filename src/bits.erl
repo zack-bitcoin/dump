@@ -34,9 +34,9 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 start_link(Id, File, Size) -> gen_server:start_link({global, Id}, ?MODULE, {Id, File, Size}, []).
 terminate(_, {ID, Top, _Highest, File, _Size}) -> 
     %db:save(File, {Bits, Top, Highest}),
-    ets:insert(ID, [{top, Top}]),
+    %ets:insert(ID, [{top, Top}]),
     utils:save_table(ID, File),
-    %io:format("died!"), 
+    io:format("bits died!\n"), 
     ok.
 handle_info(_, X) -> {noreply, X}.
 handle_cast(load_ets, X = {ID, _Top, _Highest, File, Size}) ->
@@ -45,8 +45,10 @@ handle_cast(load_ets, X = {ID, _Top, _Highest, File, Size}) ->
     Top = ets_top_check(ID),
     {noreply, {ID, Top, ok, File, Size}};
 handle_cast(quick_save, X = {ID, Top, _Highest, File, Size}) -> 
+    io:fwrite("quick saving \n"),
     ets:insert(ID, [{top, Top}]),
     utils:save_table(ID, File),
+    io:fwrite("quick saved \n"),
     {noreply, X};
 handle_cast(reset, X = {ID, Top, _Highest, File, Size}) -> 
     ets:delete_all_objects(ID),

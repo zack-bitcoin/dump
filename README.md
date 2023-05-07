@@ -22,3 +22,12 @@ ok
 ```
 
 it uses the atom ```database003``` so that you can start more than one dump, and give them different names.
+
+
+Creates 3 files: Name_bits.db, Name.db, and Name_rest.db.
+
+Name_bits.db stores 1 bit for every data entry in the database. To remember if that slot has data we need, or if we can write to it.
+
+Name_rest.db stores an integer that is the current lowest slot that is available to be written to. This is the next place that data will be written to.
+
+Name.db stores the actual data in a binary format. all concatinated together.

@@ -9,15 +9,21 @@ stop(ID) ->
     L = atom_to_list(ID),
     A = {global, list_to_atom(L ++ "sup")},
     Mode = dump:mode(ID),
-    supervisor:terminate_child(A, ID),
+    ok = supervisor:terminate_child(A, ID),
     case Mode of 
         ram -> ok;
         hd ->
-                  A2 = dump_ids:bits(ID),
-                  A3 = dump_ids:file_manager(ID),
-                  supervisor:terminate_child(A, A2),
-                  supervisor:terminate_child(A, A3)
+            A2 = dump_ids:bits(ID),
+            A3 = dump_ids:file_manager(ID),
+            io:fwrite("stopping file manager\n"),
+            %io:fwrite({Result}),
+            %supervisor:terminate_child(A, nonexistant),
+            file_manager:terminate2(ID),
+            ok = supervisor:terminate_child(A, A3),
+            io:fwrite("stopped file manager\n"),
+            ok = supervisor:terminate_child(A, A2)
     end,
+    
     ok.
 
 init([ID, Size, Amount, Mode, Location]) ->

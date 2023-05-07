@@ -111,7 +111,7 @@ handle_call(top, _From, X = {hd, _, _, ID, _}) ->
 handle_call(Other, _, X) ->
     io:fwrite("dump cannot handle that command\n"),
     io:fwrite("\n"),
-    %io:fwrite({Other, X}),
+    io:fwrite({Other, X}),
     {reply, ok, X}.
 
 save_internal(Loc, Top, Type, ID) ->

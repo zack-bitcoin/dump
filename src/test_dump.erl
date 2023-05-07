@@ -18,6 +18,7 @@ test_init(ID, Size) ->
     %ets:delete_all_objects(bits:ider(ID)),
     Mode = ?test_mode,
     dump_sup:start_link(ID, Size, 100002, Mode, ""),
+    timer:sleep(300),
     case Mode of
         hd ->
             bits:reset(ID),
@@ -114,8 +115,13 @@ test4() ->
 
 test_restore_clean() ->
     ID = kv2,
-    dump:delete_all(ID),
-    os:cmd("rm data/*.db").
+    %dump:delete_all(ID),
+    timer:sleep(100),
+    spawn(fun() ->
+                  dump_sup:stop(ID)
+          end),
+    os:cmd("rm data/*.db"),
+    timer:sleep(500).
     
 
 test_restore_1() ->
@@ -139,6 +145,7 @@ test_restore_1() ->
     dump:put(V1, ID),
     2 = dump:put(V2, ID),
     dump:quick_save(ID).
+    %ok.
 
 test_restore_2() ->
     ID = kv2,
