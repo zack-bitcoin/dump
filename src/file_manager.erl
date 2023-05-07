@@ -31,9 +31,11 @@ terminate(_, X) ->
 handle_info(_, X) -> {noreply, X}.
 handle_cast(terminate2, X = {F, Name}) -> 
     io:fwrite("cast closing file\n"),
-    file:close(F),
-    {{ok, F2}, _} = {file:open(Name, [write, read, raw, binary]), Name},
-    {noreply, {F2, Name}};
+    file:datasync(F),
+    %file:close(F),
+    %timer:sleep(100),
+    %{{ok, F2}, _} = {file:open(Name, [write, read, raw, binary]), Name},
+    {noreply, {F, Name}};
 handle_cast(_, X) -> 
     io:fwrite("unhandled cast in dump file manager\n"),
     {noreply, X}.
