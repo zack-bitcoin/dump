@@ -17,8 +17,6 @@ stop(ID) ->
             A3 = dump_ids:file_manager(ID),
             io:fwrite("stopping file manager\n"),
             %io:fwrite({Result}),
-            %supervisor:terminate_child(A, nonexistant),
-            file_manager:terminate2(ID),
             ok = supervisor:terminate_child(A, A3),
             io:fwrite("stopped file manager\n"),
             ok = supervisor:terminate_child(A, A2)
