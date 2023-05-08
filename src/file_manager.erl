@@ -2,6 +2,7 @@
 -behaviour(gen_server).
 -export([start_link/4,code_change/3,handle_call/3,handle_cast/2,handle_info/2,init/1,terminate/2, write/3,read/3]).
 init({Name, _, hd}) -> 
+    process_flag(trap_exit, true),
     {{ok, F}, _} = {file:open(Name, [write, read, raw, binary]), Name},
     %{ok, F} = file:open(Name, [write, read, raw, binary]),
     {ok, {F, Name}}.
