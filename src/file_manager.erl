@@ -20,11 +20,11 @@ handle_cast(_, X) ->
     io:fwrite("unhandled cast in dump file manager\n"),
     {noreply, X}.
 handle_call({write, Location, Data}, _From, {X, N}) -> 
-    io:fwrite("file manager write\n"),
+    %io:fwrite("file manager write\n"),
     file:pwrite(X, Location, Data),
     {reply, ok, {X, N}};
 handle_call({read, Location, Amount}, _From, {X, N}) -> 
-    io:fwrite("file manager read\n"),
+    %io:fwrite("file manager read\n"),
     {reply, file:pread(X, Location, Amount), {X, N}};
 handle_call(_, _From, X) -> 
     io:fwrite("unhandled call in dump file manager\n"),
