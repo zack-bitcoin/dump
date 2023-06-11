@@ -44,6 +44,7 @@ handle_cast(delete_all, {ram, _, W, ID, Loc}) ->
 handle_cast(reload, {hd, _, WordSize, ID, Loc}) -> 
     bits:load_ets_external(ID),
     Top2 = read_top(Loc),
+    file_manager:reload(ID),
     %Top2 = bits:top(ID),
     true = is_integer(Top2),
     {noreply, {hd, Top2, WordSize, ID, Loc}};
