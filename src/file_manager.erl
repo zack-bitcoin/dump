@@ -51,4 +51,4 @@ reload(ID) ->
 sync(ID) ->
     I = atom_to_list(ID),
     A = list_to_atom(I++"_file"),
-    gen_server:cast({global, A}, sync).
+    gen_server:call({global, A}, sync).
