@@ -1,6 +1,6 @@
 -module(file_manager).
 -behaviour(gen_server).
--export([start_link/4,code_change/3,handle_call/3,handle_cast/2,handle_info/2,init/1,terminate/2, write/3,read/3,reload/1]).
+-export([start_link/4,code_change/3,handle_call/3,handle_cast/2,handle_info/2,init/1,terminate/2, write/3,read/3,reload/1,sync/1]).
 init({Name, _, hd}) -> 
     process_flag(trap_exit, true),
     {{ok, F}, _} = {file:open(Name, [write, read, raw, binary]), Name},
@@ -18,6 +18,9 @@ terminate(_, X) ->
 handle_info(_, X) -> {noreply, X}.
 handle_cast(reload, {_, Name}) -> 
     {ok, {F, Name}} = init({Name, ok, hd}),
+    {noreply, {F, Name}};
+handle_cast(sync, {F, Name}) -> 
+    ok = file:sync(F),
     {noreply, {F, Name}};
 handle_cast(_, X) -> 
     io:fwrite("unhandled cast in dump file manager\n"),
@@ -45,3 +48,7 @@ reload(ID) ->
     I = atom_to_list(ID),
     A = list_to_atom(I++"_file"),
     gen_server:cast({global, A}, reload).
+sync(ID) ->
+    I = atom_to_list(ID),
+    A = list_to_atom(I++"_file"),
+    gen_server:cast({global, A}, sync).
