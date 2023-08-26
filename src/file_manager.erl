@@ -20,7 +20,7 @@ handle_cast(reload, {_, Name}) ->
     {ok, {F, Name}} = init({Name, ok, hd}),
     {noreply, {F, Name}};
 handle_cast(sync, {F, Name}) -> 
-    ok = file:sync(F),
+    file:sync(F),
     {noreply, {F, Name}};
 handle_cast(_, X) -> 
     io:fwrite("unhandled cast in dump file manager\n"),
