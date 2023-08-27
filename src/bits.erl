@@ -82,6 +82,7 @@ write(ID) ->
 %highest(ID) -> gen_server:call({global, ider(ID)}, highest).
 top(ID) -> gen_server:call({global, ider(ID)}, top).
 top2(Bits, N) ->
+    io:fwrite("bits top2\n"),
     B = internal_get(Bits, N),
     if
 	B -> top2(Bits, N+1);
