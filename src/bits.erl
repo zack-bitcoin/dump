@@ -41,10 +41,7 @@ terminate(_, {ID, Top, _Highest, File, _Size}) ->
 handle_info(_, X) -> {noreply, X}.
 handle_cast(load_ets, X = {ID, _Top, _Highest, File, Size}) ->
     io:fwrite("bits internal load ets 1\n"),
-    spawn(fun() ->
-                  ets:delete(ID)
-          end),
-    timer:sleep(100),
+    ets:delete(ID),
     io:fwrite("bits internal load ets 2\n"),
     case ets:file2tab(File) of
         {ok, ID} ->
@@ -178,9 +175,12 @@ load_ets(ID, File) ->
         undefined ->
             case ets:file2tab(File) of
                 {ok, ID} -> ets_top_check(ID);
-                {error, _} ->
+                {error, {read_error, {file_error, _, enoent}}} ->
                     ets:new(ID, [set, named_table, {write_concurrency, false}, compressed]),
-                    1
+                    1;
+                {error, E} ->
+                    io:fwrite(E),
+                    1=2
             end;
         _ -> ets_top_check(ID)
     end.
