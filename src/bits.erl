@@ -41,15 +41,15 @@ terminate(_, {ID, Top, _Highest, File, _Size}) ->
     ok.
 handle_info(_, X) -> {noreply, X}.
 handle_cast(load_ets, X = {ID, _Top, _Highest, File, Size}) ->
-    io:fwrite("bits internal load ets 1\n"),
+    %io:fwrite("bits internal load ets 1\n"),
     ets:delete(ID),
-    io:fwrite("bits internal load ets 2\n"),
+    %io:fwrite("bits internal load ets 2\n"),
     case ets:file2tab(File) of
         {ok, ID} ->
             %{ok, ID} = ets:file2tab(File),
-            io:fwrite("bits internal load ets 3\n"),
+            %io:fwrite("bits internal load ets 3\n"),
             Top = ets_top_check(ID),
-            io:fwrite("bits internal load ets 4\n"),
+            %io:fwrite("bits internal load ets 4\n"),
             {noreply, {ID, Top, ok, File, Size}};
         {error, E} ->
             io:fwrite("bits failed to load a new ets 1\n"),
@@ -60,10 +60,10 @@ handle_cast(load_ets, X = {ID, _Top, _Highest, File, Size}) ->
             io:fwrite(E2)
     end;
 handle_cast(quick_save, X = {ID, Top, _Highest, File, Size}) -> 
-    io:fwrite("quick saving \n"),
+    %io:fwrite("quick saving \n"),
     ets:insert(ID, [{top, Top}]),
     utils:save_table(ID, File),
-    io:fwrite("quick saved \n"),
+    %io:fwrite("quick saved \n"),
     {noreply, X};
 handle_cast(reset, X = {ID, Top, _Highest, File, Size}) -> 
     ets:delete_all_objects(ID),

@@ -17,9 +17,7 @@ terminate(_, X) ->
     io:fwrite(X).
 handle_info(_, X) -> {noreply, X}.
 handle_cast(reload, {_, Name}) -> 
-    io:fwrite("file manager reloading 1\n"),
     {ok, {F, Name}} = init({Name, ok, hd}),
-    io:fwrite("file manager reloading 2\n"),
     {noreply, {F, Name}};
 handle_cast(_, X) -> 
     io:fwrite("unhandled cast in dump file manager\n"),
