@@ -178,7 +178,6 @@ internal_update(ID, N, Value) ->
     %hipe_bifs:bitarray_update(Bits, Height, Value).%todo
 
 ets_top_check(ID) ->
-    io:fwrite("ets top check\n"),
     case ets:lookup(ID, top) of
         [] -> 1;
         [{top, X}] -> X
