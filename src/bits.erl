@@ -6,6 +6,7 @@
 -export([start_link/3,code_change/3,handle_call/3,handle_cast/2,handle_info/2,init/1,terminate/2,
 
 write/1,%sets the lowest zero-bit to one.
+set/2,%set the value of any bit.
 delete/2,%sets a one-bit to zero.
 top/1,%the lowest zero-bit
 %highest/1,%the highest one-bit
@@ -78,6 +79,14 @@ handle_call(write, _From, {Bits, Top, H, File, Size}) ->
     NewBits = internal_update(Bits, Top, true),
     NewTop = top2(NewBits, Top+1),
     {reply, ok, {NewBits, NewTop, max(H, Top), File, Size}};
+handle_call({set, Key}, _From, {Bits, Top, H, File, Size}) -> 
+    %NewBits = hipe_bifs:bitarray_update(Bits, Top, true),%todo
+    NewBits = internal_update(Bits, Key, true),
+    NewTop = case Key of
+                 Top -> top2(NewBits, Top+1);
+                 true -> Top
+             end,
+    {reply, ok, {NewBits, NewTop, max(H, Key), File, Size}};
 handle_call({get, N}, _From, X = {Bits, Top, _H, File, Size}) -> 
     G = internal_get(Bits, N),
     {reply, G, X};
@@ -92,6 +101,9 @@ delete(ID, Height) ->
     gen_server:call({global, ider(ID)}, {delete, Height}).
 write(ID) -> 
     gen_server:call({global, ider(ID)}, write).
+set(ID, Key) -> 
+    true = is_integer(Key),
+    gen_server:call({global, ider(ID)}, {set, Key}).
     
 %highest(ID) -> gen_server:call({global, ider(ID)}, highest).
 top(ID) -> gen_server:call({global, ider(ID)}, top).
