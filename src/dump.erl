@@ -42,9 +42,13 @@ handle_cast(delete_all, {ram, _, W, ID, Loc}) ->
     %{noreply, {ram, Top, W, ID, Loc}};
     {noreply, {ram, 1, W, ID, Loc}};
 handle_cast(reload, {hd, _, WordSize, ID, Loc}) -> 
+    io:fwrite("dump reload internal 1\n"),
     bits:load_ets_external(ID),
+    io:fwrite("dump reload internal 2\n"),
     Top2 = read_top(Loc),
+    io:fwrite("dump reload internal 3\n"),
     file_manager:reload(ID),
+    io:fwrite("dump reload internal 4\n"),
     %Top2 = bits:top(ID),
     true = is_integer(Top2),
     {noreply, {hd, Top2, WordSize, ID, Loc}};

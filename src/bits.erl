@@ -40,9 +40,13 @@ terminate(_, {ID, Top, _Highest, File, _Size}) ->
     ok.
 handle_info(_, X) -> {noreply, X}.
 handle_cast(load_ets, X = {ID, _Top, _Highest, File, Size}) ->
+    io:fwrite("bits internal load ets 1\n"),
     ets:delete(ID),
+    io:fwrite("bits internal load ets 2\n"),
     {ok, ID} = ets:file2tab(File),
+    io:fwrite("bits internal load ets 3\n"),
     Top = ets_top_check(ID),
+    io:fwrite("bits internal load ets 4\n"),
     {noreply, {ID, Top, ok, File, Size}};
 handle_cast(quick_save, X = {ID, Top, _Highest, File, Size}) -> 
     io:fwrite("quick saving \n"),
@@ -152,6 +156,7 @@ internal_update(ID, N, Value) ->
     %hipe_bifs:bitarray_update(Bits, Height, Value).%todo
 
 ets_top_check(ID) ->
+    io:fwrite("ets top check\n"),
     case ets:lookup(ID, top) of
         [] -> 1;
         [{top, X}] -> X
