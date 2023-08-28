@@ -43,11 +43,17 @@ handle_cast(load_ets, X = {ID, _Top, _Highest, File, Size}) ->
     io:fwrite("bits internal load ets 1\n"),
     ets:delete(ID),
     io:fwrite("bits internal load ets 2\n"),
-    {ok, ID} = ets:file2tab(File),
-    io:fwrite("bits internal load ets 3\n"),
-    Top = ets_top_check(ID),
-    io:fwrite("bits internal load ets 4\n"),
-    {noreply, {ID, Top, ok, File, Size}};
+    case ets:file2tab(File) of
+        {ok, ID} ->
+            %{ok, ID} = ets:file2tab(File),
+            io:fwrite("bits internal load ets 3\n"),
+            Top = ets_top_check(ID),
+            io:fwrite("bits internal load ets 4\n"),
+            {noreply, {ID, Top, ok, File, Size}};
+        _ ->
+            io:fwrite("bits failed to load a new ets\n"),
+            {noreply, X}
+    end;
 handle_cast(quick_save, X = {ID, Top, _Highest, File, Size}) -> 
     io:fwrite("quick saving \n"),
     ets:insert(ID, [{top, Top}]),
