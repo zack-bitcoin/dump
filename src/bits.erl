@@ -51,11 +51,12 @@ handle_cast(load_ets, X = {ID, _Top, _Highest, File, Size}) ->
             io:fwrite("bits internal load ets 4\n"),
             {noreply, {ID, Top, ok, File, Size}};
         {error, E} ->
-            io:fwrite("bits failed to load a new ets\n"),
+            io:fwrite("bits failed to load a new ets 1\n"),
             io:fwrite(E),
             {noreply, X};
-        E ->
-            io:fwrite(E)
+        E2 ->
+            io:fwrite("bits failed to load a new ets 2\n"),
+            io:fwrite(E2)
     end;
 handle_cast(quick_save, X = {ID, Top, _Highest, File, Size}) -> 
     io:fwrite("quick saving \n"),
