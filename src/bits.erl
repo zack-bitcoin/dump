@@ -41,7 +41,10 @@ terminate(_, {ID, Top, _Highest, File, _Size}) ->
 handle_info(_, X) -> {noreply, X}.
 handle_cast(load_ets, X = {ID, _Top, _Highest, File, Size}) ->
     io:fwrite("bits internal load ets 1\n"),
-    ets:delete(ID),
+    spawn(fun() ->
+                  ets:delete(ID)
+          end),
+    timer:sleep(100),
     io:fwrite("bits internal load ets 2\n"),
     case ets:file2tab(File) of
         {ok, ID} ->
