@@ -84,7 +84,7 @@ handle_call({set, Key}, _From, {Bits, Top, H, File, Size}) ->
     NewBits = internal_update(Bits, Key, true),
     NewTop = case Key of
                  Top -> top2(NewBits, Top+1);
-                 true -> Top
+                 _ -> Top
              end,
     {reply, ok, {NewBits, NewTop, max(H, Key), File, Size}};
 handle_call({get, N}, _From, X = {Bits, Top, _H, File, Size}) -> 
