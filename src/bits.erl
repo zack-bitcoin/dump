@@ -194,8 +194,10 @@ load_ets(ID, File) ->
                     ets:new(ID, [set, named_table, {write_concurrency, false}, compressed]),
                     1;
                 {error, E} ->
-                    io:fwrite(E),
-                    1=2
+                    ets:new(ID, [set, named_table, {write_concurrency, false}, compressed]),
+                    1
+                    %io:fwrite(E),
+                    %1=2
             end;
         _ -> ets_top_check(ID)
     end.
