@@ -196,6 +196,9 @@ load_ets(ID, File) ->
                 {error, {read_error, {file_error, _, enoent}}} ->
                     ets:new(ID, [set, named_table, {write_concurrency, false}, compressed]),
                     1;
+                {error, badfile} ->
+                    ets:new(ID, [set, named_table, {write_concurrency, false}, compressed]),
+                    1;
                 {error, E} ->
                     %ets:new(ID, [set, named_table, {write_concurrency, false}, compressed]),
                     %1
