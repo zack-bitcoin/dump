@@ -194,9 +194,15 @@ load_ets(ID, File) ->
             case ets:file2tab(File) of
                 {ok, ID} -> ets_top_check(ID);
                 {error, {read_error, {file_error, _, enoent}}} ->
+                    io:fwrite("bits:load_ets/2 read_error file_error error.\n"),
                     ets:new(ID, [set, named_table, {write_concurrency, false}, compressed]),
                     1;
                 {error, badfile} ->
+                    io:fwrite("bits:load_ets/2 badfile error\n"),
+                    ets:new(ID, [set, named_table, {write_concurrency, false}, compressed]),
+                    1;
+                {error, {read_error,{not_a_log_file, _}}} ->
+                    io:fwrite("bits:load_ets/2 not a log file error\n"),
                     ets:new(ID, [set, named_table, {write_concurrency, false}, compressed]),
                     1;
                 {error, E} ->
