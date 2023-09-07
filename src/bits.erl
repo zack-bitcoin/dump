@@ -63,6 +63,7 @@ handle_cast(load_ets, X = {ID, _Top, _Highest, File, Size}) ->
 handle_cast(quick_save, X = {ID, Top, _Highest, File, Size}) -> 
     io:fwrite("bits quick saving " ++ atom_to_list(ID) ++ "\n"),
     ets:insert(ID, [{top, Top}]),
+    io:fwrite("bits quick saving inserted " ++ atom_to_list(ID) ++ "\n"),
     utils:save_table(ID, File),
     io:fwrite("bits quick saved " ++ atom_to_list(ID) ++ "\n"),
     %io:fwrite("quick saved \n"),
