@@ -25,6 +25,9 @@ test/0
     
 
 init({ID, File, _Size}) ->
+    io:fwrite("bits init \n"),
+    io:fwrite(atom_to_list(ID)),
+    io:fwrite("\n"),
     process_flag(trap_exit, true),
 	%case db:read(File) of
     load_ets(ID, File),
