@@ -25,9 +25,6 @@ test/0
     
 
 init({ID, File, _Size}) ->
-    io:fwrite("bits init \n"),
-    io:fwrite(atom_to_list(ID)),
-    io:fwrite("\n"),
     process_flag(trap_exit, true),
 	%case db:read(File) of
     load_ets(ID, File),
@@ -56,11 +53,12 @@ handle_cast(load_ets, X = {ID, _Top, _Highest, File, Size}) ->
             {noreply, {ID, Top, ok, File, Size}};
         {error, E} ->
             io:fwrite("bits failed to load a new ets 1\n"),
-            io:fwrite(E),
+            %io:fwrite(E),
             {noreply, X};
         E2 ->
             io:fwrite("bits failed to load a new ets 2\n"),
-            io:fwrite(E2)
+            %io:fwrite(E2)
+            {noreply, X}
     end;
 handle_cast(quick_save, X = {ID, Top, _Highest, File, Size}) -> 
     %io:fwrite("quick saving \n"),
@@ -69,7 +67,9 @@ handle_cast(quick_save, X = {ID, Top, _Highest, File, Size}) ->
     %io:fwrite("quick saved \n"),
     {noreply, X};
 handle_cast(reset, X = {ID, Top, _Highest, File, Size}) -> 
+    io:fwrite("bits reset\n"),
     ets:delete_all_objects(ID),
+    io:fwrite("bits reset succeeded\n"),
     {noreply, {ID, 1, ok, File, Size}};
 handle_cast(_, X) -> {noreply, X}.
 handle_call({delete, Height}, _From, {Bits, Top, _Highest, File, Size})-> 
