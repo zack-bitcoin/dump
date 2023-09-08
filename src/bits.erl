@@ -25,6 +25,7 @@ test/0
     
 
 init({ID, File, _Size}) ->
+    io:fwrite("bits init\n"),
     process_flag(trap_exit, true),
 	%case db:read(File) of
     load_ets(ID, File),
@@ -52,17 +53,19 @@ handle_cast(load_ets, X = {ID, _Top, _Highest, File, Size}) ->
             %io:fwrite("bits internal load ets 4\n"),
             {noreply, {ID, Top, ok, File, Size}};
         {error, E} ->
-            io:fwrite("bits failed to load a new ets 1\n"),
+            %io:fwrite("bits failed to load a new ets, defaulting with an empty ets\n"),
+            ets:new(ID, [set, named_table, {write_concurrency, false}, compressed]),
             %io:fwrite(E),
-            {noreply, X};
+            {noreply, {ID, 1, ok, File, Size}};
         E2 ->
             io:fwrite("bits failed to load a new ets 2\n"),
+            ets:new(ID, [set, named_table, {write_concurrency, false}, compressed]),
             %io:fwrite(E2)
-            {noreply, X}
+            {noreply, {ID, 1, ok, File, Size}}
     end;
 handle_cast(quick_save, X = {ID, Top, _Highest, File, Size}) -> 
     io:fwrite("bits quick saving " ++ atom_to_list(ID) ++ "\n"),
-    ets:insert(ID, [{top, Top}]),
+    ets:insert(ID, [{top, Top}]),%crashes here...
     io:fwrite("bits quick saving inserted " ++ atom_to_list(ID) ++ "\n"),
     utils:save_table(ID, File),
     io:fwrite("bits quick saved " ++ atom_to_list(ID) ++ "\n"),
@@ -191,6 +194,7 @@ ets_top_check(ID) ->
 
 
 load_ets(ID, File) ->
+    io:fwrite("bits:load_ets\2"),
     case ets:info(ID) of
         undefined ->
             case ets:file2tab(File) of
