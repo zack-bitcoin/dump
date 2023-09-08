@@ -64,17 +64,17 @@ handle_cast(load_ets, X = {ID, _Top, _Highest, File, Size}) ->
             {noreply, {ID, 1, ok, File, Size}}
     end;
 handle_cast(quick_save, X = {ID, Top, _Highest, File, Size}) -> 
-    io:fwrite("bits quick saving " ++ atom_to_list(ID) ++ "\n"),
+    %io:fwrite("bits quick saving " ++ atom_to_list(ID) ++ "\n"),
     ets:insert(ID, [{top, Top}]),%crashes here...
-    io:fwrite("bits quick saving inserted " ++ atom_to_list(ID) ++ "\n"),
+    %io:fwrite("bits quick saving inserted " ++ atom_to_list(ID) ++ "\n"),
     utils:save_table(ID, File),
-    io:fwrite("bits quick saved " ++ atom_to_list(ID) ++ "\n"),
+    %io:fwrite("bits quick saved " ++ atom_to_list(ID) ++ "\n"),
     %io:fwrite("quick saved \n"),
     {noreply, X};
 handle_cast(reset, X = {ID, Top, _Highest, File, Size}) -> 
-    io:fwrite("bits reset\n"),
+    %io:fwrite("bits reset\n"),
     ets:delete_all_objects(ID),
-    io:fwrite("bits reset succeeded\n"),
+    %io:fwrite("bits reset succeeded\n"),
     {noreply, {ID, 1, ok, File, Size}};
 handle_cast(_, X) -> {noreply, X}.
 handle_call({delete, Height}, _From, {Bits, Top, _Highest, File, Size})-> 
